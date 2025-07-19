@@ -2,15 +2,15 @@ const express = require('express');
 const { agendarConsulta } = require('../services/gcalendar');
 const router = express.Router();
 
-// Rota GET para teste
+
 router.get('/evento', (req, res) => {
   res.json({ message: "Use POST para agendar eventos" });
 });
 
-// Rota POST para criação de eventos
+
 router.post('/evento', async (req, res) => {
   try {
-    console.log('Dados recebidos:', req.body); // Log para debug
+    console.log('Dados recebidos:', req.body); 
     
     const evento = await agendarConsulta({
       summary: req.body.summary,

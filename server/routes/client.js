@@ -9,21 +9,21 @@ router.post('/agendar', async (req, res) => {
   const { nome, email, telefone, data } = req.body;
 
   try {
-    // 1. Agenda no Google Calendar
+  
     const evento = await agendarConsulta({
       nome,
       dataInicio: data,
-      dataFim: new Date(new Date(data).getTime() + 60 * 60 * 1000), // +1 hora
+      dataFim: new Date(new Date(data).getTime() + 60 * 60 * 1000),
     });
 
-    // 2. Envia e-mail para a mãe de santo
+   
     await enviarEmail(
       process.env.EMAIL_NOTIFICACAO,
       'Nova consulta agendada',
       `Cliente: ${nome}\nEmail: ${email}\nTelefone: ${telefone}\nData: ${data}`
     );
 
-    // 3. Confirmação para o cliente (opcional)
+  
     await enviarEmail(
       email,
       'Consulta agendada com sucesso!',
