@@ -1,33 +1,49 @@
 const express = require('express');
+const { google } = require('googleapis');
 const router = express.Router();
-const { oauth2Client } = require('../services/gcalendar'); 
+require('dotenv').config();
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.CLIENT_ID,
+  process.env.CLIENT_SECRET,
+  process.env.REDIRECT_URI
+);
+
+const scopes = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/calendar.readonly',
+];
+
+
 router.get('/google', (req, res) => {
-  const SCOPES = ['https://www.googleapis.com/auth/calendar'];
-
-  const authUrl = oauth2Client.generateAuthUrl({
+  const authorizeUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline', 
-    scope: SCOPES,
-    prompt: 'consent' 
+    scope: scopes.join(' '),
+    prompt: 'consent',
   });
-
-
-  res.redirect(authUrl);
+  console.log('Redirecionando para:', authorizeUrl);
+  res.redirect(authorizeUrl);
 });
 
+router.get('/oauth2callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) {
+    console.error('Código de autorização não recebido.');
+    return res.status(400).send('Erro: Código de autorização não recebido.');
+  }
 
-router.get('/google/callback', async (req, res) => {
   try {
-    const { code } = req.query;
+
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-  
-    console.log('Novo refresh_token:', tokens.refresh_token);
 
-    res.redirect('/?auth=success');
+    res.send(`
+      <h1>Autenticação Google Calendar concluída!</h1>
+    `);
   } catch (error) {
-    console.error('Erro no callback de autenticação:', error.message);
-    res.status(500).send('Erro na autenticação');
+    console.error('Erro ao trocar código por tokens:', error.message);
+    res.status(500).send('Erro na autenticação: ' + error.message);
   }
 });
 
