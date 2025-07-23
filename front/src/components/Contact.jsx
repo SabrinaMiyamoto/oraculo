@@ -1,6 +1,13 @@
 import { Box, Button, Typography } from "@mui/material";
+import { useNavigate } from 'react-router-dom';
 
 export default function ContactSection() {
+  const navigate = useNavigate(); 
+
+  const handleAgendarConsultaClick = () => {
+    navigate('/agendamento-online'); 
+  };
+
   return (
     <Box sx={{ px: 2, py: 4, textAlign: "center" }}>
       <Typography variant="h4" gutterBottom>
@@ -20,10 +27,9 @@ export default function ContactSection() {
         <Button
           variant="outlined"
           color="primary"
-          href="https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consulta+espiritual+com+a+Mãe+de+Santo&dates=20250720T120000Z/20250720T130000Z&details=Consulta+espiritual&location=Florianópolis"
-          target="_blank"
+          onClick={handleAgendarConsultaClick}
         >
-          Agendar consulta presencial
+          Agendar consulta
         </Button>
       </Box>
 
@@ -33,10 +39,11 @@ export default function ContactSection() {
         </Typography>
         <iframe
           title="Localização - Florianópolis"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d56570.07227276175!2d-48.5492504!3d-27.5929232!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x952738248efc5a6b%3A0x6e9343d29b4890a5!2sFlorian%C3%B3polis%2C%20SC!5e0!3m2!1spt-BR!2sbr!4v1718731234567!5m2!1spt-BR!2sbr" 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15443.056667823533!2d-48.5476110287114!3d-27.5953043232187!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x952739268686f7b7%3A0x63351f78e4d3c32!2sFlorian%C3%B3polis%2C%20SC!5e0!3m2!1spt-BR!2sbr!4v1719602000000!5m2!1spt-BR!2sbr" 
           width="100%"
           height="300"
           style={{ border: 0 }}
+          allowFullScreen=""
           loading="lazy"
         ></iframe>
       </Box>

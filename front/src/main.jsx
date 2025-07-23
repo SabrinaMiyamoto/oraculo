@@ -4,6 +4,10 @@ import App from './App';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import '@fontsource/montserrat';
 import '@fontsource/playfair-display';
+// Adicione esta linha!
+import { BrowserRouter } from 'react-router-dom';
+// Importe o CSS do react-datepicker se ainda não o fez aqui
+import 'react-datepicker/dist/react-datepicker.css';
 
 
 const theme = createTheme({
@@ -18,14 +22,14 @@ const theme = createTheme({
       default: '#171a44ff',
       paper: 'linear-gradient(to right, #0b1244ff, #040610ff)',
     },
-        text: {
-      primary: 'rgba(255, 255, 255, 0.9)', 
+    text: {
+      primary: 'rgba(255, 255, 255, 0.9)',
     },
   },
   typography: {
     fontFamily: '"Montserrat", sans-serif',
     allVariants: {
-      color: 'rgba(255, 255, 255, 0.9)', 
+      color: 'rgba(255, 255, 255, 0.9)',
     },
     h1: {
       fontFamily: '"Playfair Display", serif',
@@ -43,9 +47,12 @@ const theme = createTheme({
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline /> 
-      <App />
-    </ThemeProvider>
+    {/* Agora BrowserRouter estará definido */}
+    <BrowserRouter>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );

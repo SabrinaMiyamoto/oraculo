@@ -9,6 +9,7 @@ const MongoStore = require('connect-mongo');
 const calendarRoutes = require('./routes/calendar.js');
 const clientRoutes = require('./routes/client');
 const authRoutes = require('./routes/auth'); 
+const slotRoutes = require('./routes/slotRoutes');
 
 
 dotenv.config();
@@ -57,6 +58,7 @@ app.get('/', (req, res) => {
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/slots', slotRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

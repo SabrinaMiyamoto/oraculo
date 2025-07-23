@@ -31,23 +31,9 @@ async function getAuthenticatedCalendarClient(userId) {
     });
 }
 
-/**
- * Verifica conflitos de horário em um calendário específico.
- * @param {string} userId
- * @param {string} targetCalendarId
- * @param {string} startTime 
- * @param {string} endTime 
- * @param {string} [excludeEventId=null] 
- * @returns {object|null}
- */
 async function checkTimeConflict(userId, targetCalendarId, startTime, endTime, excludeEventId = null) {
     try {
         const calendar = await getAuthenticatedCalendarClient(userId);
-
-        console.log('--- checkTimeConflict: Parâmetros para Google Calendar API ---');
-        console.log('  calendarId sendo usado:', targetCalendarId);
-        console.log('  timeMin (startTime) sendo usado:', startTime);
-        console.log('  timeMax (endTime) sendo usado:', endTime);
 
         const response = await calendar.events.list({
             calendarId: targetCalendarId,
@@ -78,50 +64,33 @@ async function checkTimeConflict(userId, targetCalendarId, startTime, endTime, e
     }
 }
 
-/**
- * Cria um evento em um calendário específico.
- * @param {string} userId 
- * @param {string} targetCalendarId 
- * @param {object} eventData 
- * @returns {object} 
- */
 async function createEvent(userId, targetCalendarId, eventData) {
     const calendarClient = await getAuthenticatedCalendarClient(userId);
 
-    console.log('Dados do evento INICIAIS recebidos para criar:', eventData);
+    const { summary, description, start, attendees, location } = eventData; // Não desestrutura 'duration' aqui, pois é calculada
 
     try {
         if (!eventData.start || !eventData.start.dateTime || !eventData.start.timeZone) {
             throw new Error('As informações de início do evento (start.dateTime e start.timeZone) são obrigatórias.');
         }
 
-        // 1. Parsear a data de início fornecida pelo cliente
         const parsedStartDateTime = new Date(eventData.start.dateTime);
         if (isNaN(parsedStartDateTime.getTime())) {
             throw new Error('Formato de data e hora de início inválido.');
         }
 
-        // 2. Calcular a data e hora de término com base na duração da consulta
+        // Calcula o horário final adicionando 90 minutos
         const calculatedEndDateTime = new Date(parsedStartDateTime.getTime() + CONSULTATION_DURATION_MINUTES * 60 * 1000);
 
-        // 3. Atualizar eventData.end com o formato ISO completo para envio à API do Google Calendar
+        // Adiciona a propriedade 'end' ao eventData para a API do Google Calendar
         eventData.end = {
             dateTime: calculatedEndDateTime.toISOString(),
             timeZone: eventData.start.timeZone
         };
 
-        // 4. Normalizar as datas de início e fim para a VERIFICAÇÃO DE CONFLITO
         const startTimeForConflictCheck = parsedStartDateTime.toISOString();
         const endTimeForConflictCheck = calculatedEndDateTime.toISOString();
 
-        console.log('Dados do evento COMPLETOS (com "end" calculado) antes de checkTimeConflict e insert:', eventData);
-        console.log('calendarId que será usado para o evento:', targetCalendarId);
-        console.log('Datas normalizadas para checkTimeConflict:');
-        console.log('  startTimeForConflictCheck:', startTimeForConflictCheck);
-        console.log('  endTimeForConflictCheck:', endTimeForConflictCheck);
-
-
-        // 5. Chamar a função de verificação de conflito com as datas normalizadas
         const conflictingEvent = await checkTimeConflict(
             userId,
             targetCalendarId,
@@ -133,23 +102,21 @@ async function createEvent(userId, targetCalendarId, eventData) {
             throw new Error(`Horário conflitante! O período de ${eventData.start.dateTime} até ${eventData.end.dateTime} já está ocupado pelo evento: "${conflictingEvent.summary}" (ID: ${conflictingEvent.id})`);
         }
 
-        // 6. Inserir o evento no Google Calendar
+        // Insere o evento usando a API direta do Google Calendar
         const response = await calendarClient.events.insert({
             calendarId: targetCalendarId,
             requestBody: {
-                ...eventData, 
+                ...eventData, // Isso inclui summary, description, start, end (calculado), attendees, location
                 reminders: {
                     useDefault: false,
                     overrides: [
-                        { method: 'email', minutes: 24 * 60 }, 
-                        { method: 'popup', minutes: 60 }    
+                        { method: 'email', minutes: 24 * 60 },
+                        { method: 'popup', minutes: 60 }
                     ]
                 }
             },
             sendUpdates: 'all'
         });
-
-        console.log(`[ALERT - NEW EVENT] Event "${eventData.summary}" (ID: ${response.data.id}) scheduled by ${eventData.attendees[0]?.email || 'Unknown'} for ${eventData.start.dateTime}. Link: ${response.data.htmlLink}`);
 
         return response.data;
     } catch (error) {
@@ -161,13 +128,6 @@ async function createEvent(userId, targetCalendarId, eventData) {
     }
 }
 
-/**
- * Busca um evento específico em um calendário.
- * @param {string} userId -
- * @param {string} targetCalendarId 
- * @param {string} eventId 
- * @returns {object|null} 
- */
 async function getEventById(userId, targetCalendarId, eventId) {
     try {
         const calendar = await getAuthenticatedCalendarClient(userId);
@@ -186,13 +146,6 @@ async function getEventById(userId, targetCalendarId, eventId) {
     }
 }
 
-/**
- * @param {string} userId
- * @param {string} targetCalendarId
- * @param {string} eventId 
- * @param {object} updatedEventData 
- * @returns {object} 
- */
 async function updateEvent(userId, targetCalendarId, eventId, updatedEventData) {
     try {
         const calendar = await getAuthenticatedCalendarClient(userId);
@@ -201,7 +154,6 @@ async function updateEvent(userId, targetCalendarId, eventId, updatedEventData) 
         let finalEndDateTime;
         let finalTimeZone;
 
-        // Se a data de início for atualizada, recalcula o fim e normaliza
         if (updatedEventData.start && updatedEventData.start.dateTime) {
             finalStartDateTime = new Date(updatedEventData.start.dateTime);
             finalTimeZone = updatedEventData.start.timeZone || 'America/Sao_Paulo';
@@ -212,7 +164,6 @@ async function updateEvent(userId, targetCalendarId, eventId, updatedEventData) 
                 timeZone: finalTimeZone
             };
         } else {
-            // Se a data de início não for atualizada, busca a data do evento existente
             const existingEvent = await getEventById(userId, targetCalendarId, eventId);
             if (!existingEvent || !existingEvent.start || !existingEvent.end) {
                 throw new Error('Não foi possível determinar o horário do evento existente para atualização.');
@@ -222,12 +173,11 @@ async function updateEvent(userId, targetCalendarId, eventId, updatedEventData) 
             finalTimeZone = existingEvent.start.timeZone;
         }
 
-        // Verifica conflitos com as novas datas, excluindo o próprio evento que está sendo atualizado
         const conflictingEvent = await checkTimeConflict(
             userId,
             targetCalendarId,
             finalStartDateTime.toISOString(),
-            finalEndDateTime.toISOString(),   
+            finalEndDateTime.toISOString(),
             eventId
         );
 
@@ -238,11 +188,9 @@ async function updateEvent(userId, targetCalendarId, eventId, updatedEventData) 
         const response = await calendar.events.update({
             calendarId: targetCalendarId,
             eventId: eventId,
-            requestBody: updatedEventData, 
-            sendUpdates: 'all'            
+            requestBody: updatedEventData,
+            sendUpdates: 'all'
         });
-
-        console.log(`[ALERT - EVENT UPDATED] Event "${updatedEventData.summary}" (ID: ${eventId}) updated. New data: ${updatedEventData.start?.dateTime || finalStartDateTime.toISOString()}.`);
 
         return response.data;
     } catch (error) {
@@ -251,13 +199,6 @@ async function updateEvent(userId, targetCalendarId, eventId, updatedEventData) 
     }
 }
 
-/**
-
- * @param {string} userId - 
- * @param {string} targetCalendarId
- * @param {string} eventId - 
- * @returns {number} 
- */
 async function deleteEvent(userId, targetCalendarId, eventId) {
     try {
         const calendar = await getAuthenticatedCalendarClient(userId);
@@ -268,7 +209,6 @@ async function deleteEvent(userId, targetCalendarId, eventId) {
             throw new Error('Event not found for cancellation.');
         }
 
-        // Para "cancelar", a API do Google Calendar recomenda atualizar o status para 'cancelled'
         existingEvent.status = 'cancelled';
 
         const response = await calendar.events.update({
@@ -278,8 +218,7 @@ async function deleteEvent(userId, targetCalendarId, eventId) {
             sendUpdates: 'all'
         });
 
-        console.log(`[ALERT - EVENT CANCELLED] Event with ID: ${eventId} was cancelled. Status: ${response.data.status}`);
-        return response.status; 
+        return response.status;
     } catch (error) {
         console.error('Error cancelling event from Google Calendar:', error.response?.data || error.message);
         throw new Error('Falha ao cancelar evento: ' + (error.response ? error.response.data.error.message : 'Erro desconhecido'));
